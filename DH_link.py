@@ -59,7 +59,7 @@ class DH_link:
 
 
         #Sourced from M.Spong -Robot Modeling and Control
-        self.A = np.array([[cos(self.theta), sin(self.theta)*cos(self.alpha), sin(self.theta)*sin(self.alpha), self.a*cos(self.theta)], 
+        self.A = np.array([[cos(self.theta), -sin(self.theta)*cos(self.alpha), sin(self.theta)*sin(self.alpha), self.a*cos(self.theta)], 
                            [sin(self.theta), cos(self.theta)*cos(self.alpha), -cos(self.theta)*sin(self.alpha), self.a*sin(self.theta)],
                            [           0,           sin(self.alpha),                 cos(self.alpha),                 self.d          ], 
                            [           0,                     0,                           0,                         1               ]]

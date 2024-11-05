@@ -46,9 +46,9 @@ class IRB4400_DH:
 
     """
     VERIFIED WITH https://tools.glowbuzzer.com/kinviz    
-    
+    BELOW ARE THE CORRECT PARAMETERS
+    REMEMBER THAT A6 WILL NEED UPDATING DEPENDENT ON THE END AFFECTOR
     """
-
 
     _DH_PARAMS = [[240, pi/2, 800], [1050, 0, 0], [225, pi/2, 0], [0, -pi/2, 1520], [0,pi/2,0], [0,0,200]]
 
@@ -76,9 +76,9 @@ class IRB4400_DH:
 
         #Create all of the links with the relevant information
         for i in range(len(theta_list)):
-            self.link_list.append(DH_link.DH_link(self._DH_PARAMS[i][0], 
-                                                  self._DH_PARAMS[i][1], 
-                                                  self._DH_PARAMS[i][2], 
+            self.link_list.append(DH_link.DH_link(self._DH_PARAMS[i][0], #link_length
+                                                  self._DH_PARAMS[i][1], #link_twist
+                                                  self._DH_PARAMS[i][2], #link_offset
                                                   self.theta_list[i] + self._THETA_OFFSETS[i])
                                                   )
 
@@ -130,7 +130,7 @@ class IRB4400_DH:
         self._THETA_OFFSETS = [0, pi/2, -self.theta_list[1], 0, 0, 0]
 
         for i in range(len(theta_list)):
-            self.link_list[i].update_hg_mat("joint_angle", theta_list[i] + self._THETA_OFFSETS[i])
+            self.link_list[i].update_hg_mat(joint_angle = theta_list[i] + self._THETA_OFFSETS[i])
 
         self.update_pos_orient()
 
@@ -152,12 +152,12 @@ class IRB4400_DH:
 if __name__ == "__main__":
 
 
-    theta_1 = radians(0)
-    theta_2 = radians(0)
-    theta_3 = radians(0)
-    theta_4 = radians(0)
-    theta_5 = radians(0)
-    theta_6 = radians(0)
+    theta_1 = radians(-45) #NON-INVERTED
+    theta_2 = radians(25) #INVERTED
+    theta_3 = radians(15) #INVERTED
+    theta_4 = radians(50) #NON-INVERTED
+    theta_5 = -radians(30) # INVERTED
+    theta_6 = radians(-264.61) # NON-INVERTED!
 
     robot = IRB4400_DH([theta_1, theta_2, theta_3, theta_4, theta_5, theta_6])
 
