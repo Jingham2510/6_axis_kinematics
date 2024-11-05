@@ -9,6 +9,7 @@ which are a representatoin of the current rotation?
 import DH_link
 import numpy as np
 from math import pi
+from math import radians
 
 class IRB4400_DH:
 
@@ -17,10 +18,44 @@ class IRB4400_DH:
     -Dynamic_Analysis_and_Visualization_of_Spatial_Mani suggests modifications to theta values
     These determine all the maths for the forward/inverse kinematics - if incorrect there will be unpredictable behaviour   
     Format is [link_length, link twist, link offset] 
+     or       [a,             alpha,        d]
+     These are constant for each joint - hence why theta is in a different list
+
+    When IRB440 is at the position (thetas = 0, 0, 0, 0, 0, 0)
+    The coords are registered as [X,Y,Z] = [1960, 0, 2075] in reference to the base frame
+
     """
-    _DH_PARAMS = [[0.24, -pi/2, 0], [1.05, 0, 0], [0.225, -pi/2, 1.52], [0, pi/2, 0], [0, pi/2, 0], [0.4, 0, 0]]
-    _THETA_OFFSETS = [-pi/2, 0, 0, -pi, 0, -pi/2]
+
+    """    
+    #FROM THE IRB ARCHIVE PIM.XML
+    _DH_PARAMS = [ [0.24, -pi/2, 0], [1.05, 0, 0], [0.225, -pi/2, 1.52], [0, pi/2, 0], [0, pi/2, 0], [0, 0, 0]]
+    _THETA_OFFSETS = [ -pi/2, 0, 0, -pi, 0, 0]
+    """
+  
+    """
+
+    #manual/reading other sources for inspo 
+    #https://www.researchgate.net/publication/344042740_Tribo-dynamic_analysis_and_motion_control_of_a_rotating_manipulator_based_on_the_load_and_temperature_dependent_friction_model
+    #https://automaticaddison.com/how-to-find-denavit-hartenberg-parameter-tables/
+    """
+
+    #A1 SHOULD BE CORRECT?
+    #_DH_PARAMS = [[240, pi/2, 800], [1050, 0, 0], [225, -pi/2, 0], [0, -pi/2, 1520], [0, pi/2, 0], [0,0,0]]
+    #_THETA_OFFSETS = [0, -pi/2, 0, 0, 0, 0]
+
+
+    """
+    VERIFIED WITH https://tools.glowbuzzer.com/kinviz    
     
+    """
+
+
+    _DH_PARAMS = [[240, pi/2, 800], [1050, 0, 0], [225, pi/2, 0], [0, -pi/2, 1520], [0,pi/2,0], [0,0,200]]
+
+
+
+
+
 
 
     #Should be the same everytime
@@ -37,10 +72,7 @@ class IRB4400_DH:
         self.link_list = []
 
 
-        """
-        TODO:
-            -Generate constants to represent IRB4400 DH parameters
-        """
+        self._THETA_OFFSETS = [0, pi/2, -self.theta_list[1], 0, 0, 0]
 
         #Create all of the links with the relevant information
         for i in range(len(theta_list)):
@@ -60,11 +92,13 @@ class IRB4400_DH:
     """
     def _calc_transform(self):
 
-
-        #Multiply all of the homogeneus matrices together to get the transformation matrix of oritentation.translation frame 6 in respect to frame 0 (the reference frame)
-        self.T = np.matmul(np.matmul(np.matmul(self.link_list[0].get_hg_mat(), self.link_list[1].get_hg_mat()), 
-                  np.matmul(self.link_list[2].get_hg_mat(), self.link_list[3].get_hg_mat())),  
-                  np.matmul(self.link_list[4].get_hg_mat(), self.link_list[5].get_hg_mat()))
+        #Multiply all of the homogeneus matrices together to get the transformation matrix of oritentation.translation frame 6 
+        #in respect to frame 0 (the reference frame)
+        
+        self.T = np.matmul(
+                    np.matmul(np.matmul(self.link_list[0].get_hg_mat(), self.link_list[1].get_hg_mat()), 
+                        np.matmul(self.link_list[2].get_hg_mat(), self.link_list[3].get_hg_mat())),  
+                        np.matmul(self.link_list[4].get_hg_mat(), self.link_list[5].get_hg_mat()))
         
 
         
@@ -93,6 +127,8 @@ class IRB4400_DH:
         self.theta_list = theta_list
 
 
+        self._THETA_OFFSETS = [0, pi/2, -self.theta_list[1], 0, 0, 0]
+
         for i in range(len(theta_list)):
             self.link_list[i].update_hg_mat("joint_angle", theta_list[i] + self._THETA_OFFSETS[i])
 
@@ -116,18 +152,27 @@ class IRB4400_DH:
 if __name__ == "__main__":
 
 
-    theta_1 = 0
-    theta_2 = 0
-    theta_3 = 0
-    theta_4 = 0
-    theta_5 = 30
-    theta_6 = 0
+    theta_1 = radians(0)
+    theta_2 = radians(0)
+    theta_3 = radians(0)
+    theta_4 = radians(0)
+    theta_5 = radians(0)
+    theta_6 = radians(0)
 
     robot = IRB4400_DH([theta_1, theta_2, theta_3, theta_4, theta_5, theta_6])
 
     robot.update_pos_orient()
 
-    print(robot.get_pos())
+
+    pos = robot.get_pos()
+
+    X = round(float(pos[0]), 6)
+    Y = round(float(pos[1]), 6)
+    Z = round(float(pos[2]), 6)
+
+
+    print(f"X: {X}  Y: {Y}  Z: {Z}")
+    print(robot.get_orient())
 
 
 
