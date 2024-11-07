@@ -9,7 +9,7 @@ which are a representatoin of the current rotation?
 import DH_link
 import numpy as np
 from math import pi
-from math import radians
+from math import radians, asin, cos, atan2
 
 class IRB4400_DH:
 
@@ -111,9 +111,16 @@ class IRB4400_DH:
         self._calc_transform()
 
         #Extract the position and the orientation from the transform matrix - according to M.Spong
-        self.pos = [self.T[0][3], self.T[1][3], self.T[2][3]]
+        self.pos = {
 
-        self.orient = [[self.T[0][0], self.T[0][1], self.T[0][2]], [self.T[1][0], self.T[1][1], self.T[1][2]], [self.T[2][0], self.T[2][1], self.T[2][2]]]
+            "X": self.T[0][3], 
+            "Y": self.T[1][3], 
+            "Z": self.T[2][3]
+        }
+
+        self.pure_orient_mat = [[self.T[0][0], self.T[0][1], self.T[0][2]], [self.T[1][0], self.T[1][1], self.T[1][2]], [self.T[2][0], self.T[2][1], self.T[2][2]]]
+
+
 
         
     """
@@ -145,19 +152,67 @@ class IRB4400_DH:
     """
     Getter function for the orientation of the end affector relative to the base frame
     """
-    def get_orient(self):
-        return self.orient
+    def get_euler_orient(self):
+
+
+        
+        #Orientation in temrs of euler angles
+        #Format is psi (x-axis), theta (y-axis), phi (z-axis)
+        #There are two possible solutions 
+        #Based on pseudocode from: www.eecs.qmul.ac.uk/~gslabaugh/publications/euler.pdf
+        
+        if abs(self.pure_orient_mat[2][0]) != 1:
+
+            ang_1 = -asin(self.pure_orient_mat[2][0])
+
+            ang_2 = pi - ang_1
+
+
+            #All inverted to match RobotStudio (also inverted R11 in the phi calculation)
+            self.euler_orient =[
+                [-atan2(self.pure_orient_mat[2][1]/cos(ang_1), self.pure_orient_mat[2][2]/cos(ang_1)), -ang_1, 
+                 -atan2(self.pure_orient_mat[1][0]/cos(ang_1), -self.pure_orient_mat[0][0]/cos(ang_1))],
+                [-atan2(self.pure_orient_mat[2][1]/cos(ang_2), self.pure_orient_mat[2][2]/cos(ang_2)), -ang_2, 
+                 -atan2(self.pure_orient_mat[1][0]/cos(ang_2), -self.pure_orient_mat[0][0]/cos(ang_2))]
+                ]
+
+        else:
+
+            #There are infinite different solutions at this point!
+            #We constrain phi to be 0 as we only want one solution
+            
+            """
+            NOTE: In the future it might be important to read the angle/joint data from the robot as opposed to calculating it ourselves because
+                  we might end up constraining phi to be something that it isnt! (although technically we will have the same outcome)
+            """
+            phi = 0
+
+            if(self.pure_orient_mat[2][0] == -1):
+                theta = pi/2
+                psi = phi + atan2(self.pure_orient_mat[0][1], self.pure_orient_mat[0][2])
+
+            else:
+                theta = -pi/2
+                psi = -phi + atan2(-self.pure_orient_mat[0][1], -self.pure_orient_mat[0][2])
+
+
+            #All inverted to match robot studio
+            self.euler_orient[-psi, -theta, -phi]
+
+
+
+        return self.euler_orient
 
 
 if __name__ == "__main__":
 
 
-    theta_1 = radians(-45) #NON-INVERTED
-    theta_2 = radians(25) #INVERTED
-    theta_3 = radians(15) #INVERTED
-    theta_4 = radians(50) #NON-INVERTED
-    theta_5 = -radians(30) # INVERTED
-    theta_6 = radians(-264.61) # NON-INVERTED!
+    theta_1 = radians(-67.75) #NON-INVERTED
+    theta_2 = -radians(58.01) #INVERTED
+    theta_3 = -radians(8.05) #INVERTED
+    theta_4 = radians(195.51) #NON-INVERTED
+    theta_5 = -radians(43.82) # INVERTED
+    theta_6 = radians(-94.38) # NON-INVERTED!
 
     robot = IRB4400_DH([theta_1, theta_2, theta_3, theta_4, theta_5, theta_6])
 
@@ -166,13 +221,13 @@ if __name__ == "__main__":
 
     pos = robot.get_pos()
 
-    X = round(float(pos[0]), 6)
-    Y = round(float(pos[1]), 6)
-    Z = round(float(pos[2]), 6)
+    X = round(float(pos["X"]), 3)
+    Y = round(float(pos["Y"]), 3)
+    Z = round(float(pos["Z"]), 3)
 
 
     print(f"X: {X}  Y: {Y}  Z: {Z}")
-    print(robot.get_orient())
+    print(robot.get_euler_orient())
 
 
 
