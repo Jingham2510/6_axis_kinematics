@@ -10,6 +10,7 @@ import DH_link
 import numpy as np
 from math import pi
 from math import degrees, radians, asin, cos, atan2, sqrt, acos, copysign
+import IK_solvers as IK
 
 class IRB4400_DH:
 
@@ -140,6 +141,7 @@ class IRB4400_DH:
         self.pure_orient_mat = [[self.T[0][0], self.T[0][1], self.T[0][2]], 
                                 [self.T[1][0], self.T[1][1], self.T[1][2]], 
                                 [self.T[2][0], self.T[2][1], self.T[2][2]]]
+        
 
 
     """
@@ -373,7 +375,7 @@ class IRB4400_DH:
         #Calculate each jacobian component for each link
         for i in range(1, len(self.link_list)):
 
-            print(trans_matrices)
+            #print(trans_matrices)
 
             """
             
@@ -409,14 +411,36 @@ class IRB4400_DH:
             trans_matrices = np.matmul(trans_matrices, self.link_list[i].get_hg_mat())
 
 
-        print("-----Jacobian------")
-
         #Combine the matrices to create a 6x6 jacobian matrix
         jacobian = np.concatenate([i for i in J], axis=1)
 
-        print(jacobian)
+        #print(jacobian)
 
         return jacobian
+    
+
+    """
+    Calculates new joint angles for a given target position -
+    Basically a wrapper that enables the usage of multiple different implementations for finding new angles 
+
+    new_pos format = [X, Y, Z, RX, RY, RZ]
+
+    """
+    def calc_new_angles(self, method, goal_pos):
+
+        match method:
+
+            case "gradient descent":
+                new_angles = IK._gradient_descent(goal_pos)
+
+
+            case _:
+                print("INVALID METHOD")       
+        
+        return new_angles
+
+
+
 
 
 
@@ -455,7 +479,7 @@ if __name__ == "__main__":
 
     #robot.geometric_IK([X, Y ,Z])
 
-"""
+    """
     print("---------JACOBIAN----------")
 
     #robot.calc_jacobian()
@@ -463,6 +487,5 @@ if __name__ == "__main__":
     """
 
 
-
-
+    #robot.calc_new_angles("gradient descent", [X - 100, Y, Z , 3.1239648281446506, 1.0471975511965979, 3.141592653589793])
 
