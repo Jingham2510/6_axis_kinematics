@@ -64,6 +64,8 @@ class DH_link:
                            [           0,           sin(self.alpha),                 cos(self.alpha),                 self.d          ], 
                            [           0,                     0,                           0,                         1               ]]
                            )
+        
+        #print(self.A)
 
 
     def get_hg_mat(self):

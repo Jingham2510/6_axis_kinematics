@@ -9,7 +9,7 @@ which are a representatoin of the current rotation?
 import DH_link
 import numpy as np
 from math import pi
-from math import degrees, radians, asin, cos, atan2, sqrt, acos, copysign
+from math import degrees, radians, sin, asin, cos, atan2, sqrt, acos, copysign
 import IK_solvers as IK
 
 class IRB4400_DH:
@@ -22,8 +22,6 @@ class IRB4400_DH:
      or       [a,             alpha,        d]
      These are constant for each joint - hence why theta is in a different list
 
-    When IRB440 is at the position (thetas = 0, 0, 0, 0, 0, 0)
-    The coords are registered as [X,Y,Z] = [1960, 0, 2075] in reference to the base frame
 
     """
 
@@ -48,17 +46,21 @@ class IRB4400_DH:
     """
     VERIFIED WITH https://tools.glowbuzzer.com/kinviz    
     BELOW ARE THE CORRECT PARAMETERS
-    REMEMBER THAT A6 WILL NEED UPDATING DEPENDENT ON THE END AFFECTOR
+    REMEMBER THAT A6 WILL NEED UPDATING DEPENDENT ON THE END AFFECTOR POSITION/ORIENTATION
+    
     """
 
     _DH_PARAMS = [[240, pi/2, 800], [1050, 0, 0], [225, pi/2, 0], [0, -pi/2, 1520], [0,pi/2,0], [0,0,200]]
 
     _INVERTED = [0, 1, 1, 0, 1, 0]
 
+    _INVERTED = [0, 0, 0, 0, 0, 0]
+
+
+
+
     #Origin frame in reference to the base of the robot (currently just the base frame)
     _ORIGIN_FRAME = [0, 0, 0]
-
-
 
 
     #Should be the same everytime
@@ -77,7 +79,6 @@ class IRB4400_DH:
                 self.theta_list.append(-theta_list[i])
             else:
                 self.theta_list.append(theta_list[i])
-
 
 
         #Calculate fully extended length (not including angle limits - can ignore as we won't reach them in our workspace)
@@ -99,6 +100,8 @@ class IRB4400_DH:
                                                   self.theta_list[i] + self._THETA_OFFSETS[i])
                                                   )
 
+
+
         #Calc the current transformation matrix
         self.update_pos_orient()
 
@@ -111,14 +114,19 @@ class IRB4400_DH:
 
         #Multiply all of the homogeneus matrices together to get the transformation matrix of oritentation.translation frame 6 
         #in respect to frame 0 (the reference frame)
-        
-        self.T = np.matmul(
-                    np.matmul(np.matmul(self.link_list[0].get_hg_mat(), self.link_list[1].get_hg_mat()), 
-                        np.matmul(self.link_list[2].get_hg_mat(), self.link_list[3].get_hg_mat())),  
-                        np.matmul(self.link_list[4].get_hg_mat(), self.link_list[5].get_hg_mat()))
-        
 
-        
+
+        self.T1_0 = np.matmul(self.link_list[0].get_hg_mat(), self.link_list[1].get_hg_mat())
+        self.T2_0 = np.matmul(self.T1_0, self.link_list[2].get_hg_mat())
+        self.T3_0 = np.matmul(self.T2_0, self.link_list[3].get_hg_mat())
+        self.T4_0 = np.matmul(self.T3_0, self.link_list[4].get_hg_mat())
+        self.T = np.matmul(self.T4_0, self.link_list[5].get_hg_mat())
+
+        print(self.T)
+
+
+
+       
 
         
 
@@ -155,7 +163,7 @@ class IRB4400_DH:
         #Do the first calculation outside the loop to avoid a matrix multiplication
         curr_T = self.link_list[0].get_hg_mat()
 
-        joint_pos.append([round(curr_T[0][3],3), round(curr_T[1][3],3), round(curr_T[2][3],3)])
+        joint_pos.append([curr_T[0][3], curr_T[1][3], curr_T[2][3]])
         
 
         #Go through every joint
@@ -163,7 +171,7 @@ class IRB4400_DH:
             
             curr_T = np.matmul(curr_T, self.link_list[i].get_hg_mat())
 
-            joint_pos.append([round(curr_T[0][3],3), round(curr_T[1][3],3), round(curr_T[2][3],3)])
+            joint_pos.append([curr_T[0][3], curr_T[1][3], curr_T[2][3]])
 
 
 
@@ -217,19 +225,13 @@ class IRB4400_DH:
         
         if abs(self.pure_orient_mat[2][0]) != 1:
 
+    
+            #Theres two possible pitches, we just take the first for now 
+            pitch = atan2(-self.pure_orient_mat[2][0], sqrt(pow(self.pure_orient_mat[2][1], 2) + pow(self.pure_orient_mat[2][2], 2)))
 
-            ang_1 = -asin(self.pure_orient_mat[2][0])
+            roll = atan2(self.pure_orient_mat[2][1]/cos(pitch), self.pure_orient_mat[2][2]/cos(pitch))
 
-            ang_2 = pi - ang_1
-
-
-            #All inverted to match RobotStudio (also inverted R11 in the phi calculation)
-            self.euler_orient =[
-                [atan2(self.pure_orient_mat[2][1]/cos(ang_1), self.pure_orient_mat[2][2]/cos(ang_1)), -ang_1, 
-                 atan2(self.pure_orient_mat[1][0]/cos(ang_1), -self.pure_orient_mat[0][0]/cos(ang_1))],
-                [atan2(self.pure_orient_mat[2][1]/cos(ang_2), self.pure_orient_mat[2][2]/cos(ang_2)), -ang_2, 
-                 atan2(self.pure_orient_mat[1][0]/cos(ang_2), -self.pure_orient_mat[0][0]/cos(ang_2))]
-                ]
+            yaw = atan2(self.pure_orient_mat[1][0]/cos(pitch), self.pure_orient_mat[0][0]/cos(pitch))
 
         else:
 
@@ -238,22 +240,21 @@ class IRB4400_DH:
             
             """
             NOTE: In the future it might be important to read the angle/joint data from the robot as opposed to calculating it ourselves because
-                  we might end up constraining phi to be something that it isnt! (although technically we will have the same outcome)
+                 we might end up constraining phi to be something that it isnt! (although technically we will have the same outcome)
             """
-            phi = 0
+            yaw = 0
 
             if(self.pure_orient_mat[2][0] == -1):
-                theta = pi/2
-                psi = phi + atan2(self.pure_orient_mat[0][1], self.pure_orient_mat[0][2])
+                pitch = pi/2
+                roll = yaw + atan2(self.pure_orient_mat[0][1], self.pure_orient_mat[0][2])
 
             else:
-                theta = -pi/2
-                psi = -phi + atan2(-self.pure_orient_mat[0][1], -self.pure_orient_mat[0][2])
+                pitch = -pi/2
+                roll = -yaw + atan2(-self.pure_orient_mat[0][1], -self.pure_orient_mat[0][2])
 
 
-            #All inverted to match robot studio
-            self.euler_orient[-psi, -theta, -phi]
-
+        #All inverted to match robot studio
+        self.euler_orient = [roll, yaw, pitch]
 
 
         return self.euler_orient
@@ -306,9 +307,9 @@ class IRB4400_DH:
 
 
         #Calculate each jacobian component for each link
-        for i in range(1, len(self.link_list)):
+        for i in range(len(self.link_list)):
 
-            #print(trans_matrices)
+            print(trans_matrices)
 
             """
             
@@ -320,10 +321,10 @@ class IRB4400_DH:
             """      
 
             #First 3 elements of third column T^0_i
-            z_i_minus_one = np.vstack([[round(trans_matrices[0][2],3)], [round(trans_matrices[1][2], 3)], [round(trans_matrices[2][2], 3)]])
+            z_i_minus_one = np.vstack([[trans_matrices[0][2]], [trans_matrices[1][2]], [trans_matrices[2][2]]])
 
             #First 3 elements of fourth coloum T^0_i
-            o_i_minus_one = np.vstack([[round(trans_matrices[0][3], 3)], [round(trans_matrices[1][3], 3)], [round(trans_matrices[2][3], 3)]])     
+            o_i_minus_one = np.vstack([[trans_matrices[0][3]], [trans_matrices[1][3]], [trans_matrices[2][3]]])     
 
 
             j_top  = np.cross(z_i_minus_one, np.subtract(o_n, o_i_minus_one), axis=0)
@@ -412,12 +413,12 @@ if __name__ == "__main__":
 
     #robot.geometric_IK([X, Y ,Z])
 
-    """
+ 
     print("---------JACOBIAN----------")
 
-    #robot.calc_jacobian()
+    robot.calc_jacobian()
 
-    """
+
 
 
     #robot.calc_new_angles("gradient descent", [X - 100, Y, Z , 3.1239648281446506, 1.0471975511965979, 3.141592653589793])
