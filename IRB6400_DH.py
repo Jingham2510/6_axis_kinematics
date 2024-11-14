@@ -54,7 +54,7 @@ class IRB4400_DH:
 
     _INVERTED = [0, 1, 1, 0, 1, 0]
 
-    _INVERTED = [0, 0, 0, 0, 0, 0]
+    #_INVERTED = [0, 0, 0, 0, 0, 0]
 
 
 
@@ -279,9 +279,11 @@ class IRB4400_DH:
 
 
         #Calculate each jacobian component for each link
-        for i in range(len(self.link_list)):
+        for i in range(1, len(self.link_list)):
+        
 
-            print(trans_matrices)
+
+            #print(trans_matrices)
 
             """
             
@@ -293,34 +295,45 @@ class IRB4400_DH:
             """      
 
             #First 3 elements of third column T^0_i
-            z_i_minus_one = np.vstack([[trans_matrices[0][2]], [trans_matrices[1][2]], [trans_matrices[2][2]]])
+            z_i_minus_one = np.array([[trans_matrices[0][2]], [trans_matrices[1][2]], [trans_matrices[2][2]]])
+
+            #print(z_i_minus_one)
 
             #First 3 elements of fourth coloum T^0_i
-            o_i_minus_one = np.vstack([[trans_matrices[0][3]], [trans_matrices[1][3]], [trans_matrices[2][3]]])     
+            o_i_minus_one = np.array([[trans_matrices[0][3]], [trans_matrices[1][3]], [trans_matrices[2][3]]])
+
+            #print(o_i_minus_one)   
 
 
             j_top  = np.cross(z_i_minus_one, np.subtract(o_n, o_i_minus_one), axis=0)
+            #print(j_top)
 
             j_bot = z_i_minus_one
+            #print(j_bot)
 
             j_i = np.vstack([j_top, j_bot])
 
-            """
-            print(f"J_{i} --------------------------")
+            
+            #print(f"J_{i} --------------------------")
 
-            print(j_i)           
-            """
+            #print(j_i)           
+            
 
             J.append(j_i)
 
             #Calculate the next transofrmation matrix
             trans_matrices = np.matmul(trans_matrices, self.link_list[i].get_hg_mat())
 
+        """
+        print("----check----")
+        print(self.T)
+        print(trans_matrices)
+        """
 
         #Combine the matrices to create a 6x6 jacobian matrix
         jacobian = np.concatenate([i for i in J], axis=1)
 
-        #print(jacobian)
+        print(jacobian)
 
         return jacobian
     
@@ -332,7 +345,7 @@ class IRB4400_DH:
     new_pos format = [X, Y, Z, RX, RY, RZ]
 
     """
-    def calc_new_angles(self, method, goal_pos):
+    def calc_new_joints(self, method, goal_pos):
 
         match method:
 
@@ -353,12 +366,12 @@ class IRB4400_DH:
 if __name__ == "__main__":
 
 
-    theta_1 = radians(180) 
-    theta_2 = radians(16.64) 
-    theta_3 = radians(30.15) 
-    theta_4 = radians(-170.22) 
-    theta_5 = radians(67.42) 
-    theta_6 = radians(-91.01) 
+    theta_1 = radians(0) 
+    theta_2 = radians(0) 
+    theta_3 = radians(0) 
+    theta_4 = radians(0) 
+    theta_5 = radians(30) 
+    theta_6 = radians(0) 
 
     robot = IRB4400_DH([theta_1, theta_2, theta_3, theta_4, theta_5, theta_6])
 
@@ -393,5 +406,5 @@ if __name__ == "__main__":
 
 
 
-    #robot.calc_new_angles("gradient descent", [X - 100, Y, Z , 3.1239648281446506, 1.0471975511965979, 3.141592653589793])
+    #robot.calc_new_joints("gradient descent", [X - 100, Y, Z , 3.1239648281446506, 1.0471975511965979, 3.141592653589793])
 
