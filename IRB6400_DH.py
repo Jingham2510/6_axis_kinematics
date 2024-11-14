@@ -393,12 +393,6 @@ if __name__ == "__main__":
     #print(robot._get_all_joint_pos())
 
 
-    #robot.FABRIK_IK([1933.205, 100, 1975], 0.5)
-
-
-    #robot.geometric_IK([X, Y ,Z])
-
- 
     print("---------JACOBIAN----------")
 
     robot.calc_jacobian()
