@@ -215,46 +215,18 @@ class IRB4400_DH:
     """
     def get_euler_orient(self):
 
+        #ABB does ZYX euler transformations 
+        # https://en.wikipedia.org/wiki/Euler_angles#Rotation_matrix      
+        #There might be issues with singularities but can sort it when it occurs
 
-        
-        #Orientation in temrs of euler angles
-        #Format is psi (x-axis), theta (y-axis), phi (z-axis)
-        #There are two possible solutions 
-        #Based on pseudocode from: www.eecs.qmul.ac.uk/~gslabaugh/publications/euler.pdf
-
-        
-        if abs(self.pure_orient_mat[2][0]) != 1:
-
-    
-            #Theres two possible pitches, we just take the first for now 
-            pitch = atan2(-self.pure_orient_mat[2][0], sqrt(pow(self.pure_orient_mat[2][1], 2) + pow(self.pure_orient_mat[2][2], 2)))
-
-            roll = atan2(self.pure_orient_mat[2][1]/cos(pitch), self.pure_orient_mat[2][2]/cos(pitch))
-
-            yaw = atan2(self.pure_orient_mat[1][0]/cos(pitch), self.pure_orient_mat[0][0]/cos(pitch))
-
-        else:
-
-            #There are infinite different solutions at this point!
-            #We constrain phi to be 0 as we only want one solution
-            
-            """
-            NOTE: In the future it might be important to read the angle/joint data from the robot as opposed to calculating it ourselves because
-                 we might end up constraining phi to be something that it isnt! (although technically we will have the same outcome)
-            """
-            yaw = 0
-
-            if(self.pure_orient_mat[2][0] == -1):
-                pitch = pi/2
-                roll = yaw + atan2(self.pure_orient_mat[0][1], self.pure_orient_mat[0][2])
-
-            else:
-                pitch = -pi/2
-                roll = -yaw + atan2(-self.pure_orient_mat[0][1], -self.pure_orient_mat[0][2])
+        Z = atan2(self.pure_orient_mat[1][0],self.pure_orient_mat[0][0])
+        Y = asin(-self.pure_orient_mat[2][0])
+        X = atan2(self.pure_orient_mat[2][1],self.pure_orient_mat[2][2])
 
 
-        #All inverted to match robot studio
-        self.euler_orient = [roll, yaw, pitch]
+
+        #ZYX to match robot studio order
+        self.euler_orient = [Z, Y, X]
 
 
         return self.euler_orient
@@ -381,12 +353,12 @@ class IRB4400_DH:
 if __name__ == "__main__":
 
 
-    theta_1 = radians(0) 
-    theta_2 = radians(0) 
-    theta_3 = radians(0) 
-    theta_4 = radians(0) 
-    theta_5 = radians(30) 
-    theta_6 = radians(0) 
+    theta_1 = radians(180) 
+    theta_2 = radians(16.64) 
+    theta_3 = radians(30.15) 
+    theta_4 = radians(-170.22) 
+    theta_5 = radians(67.42) 
+    theta_6 = radians(-91.01) 
 
     robot = IRB4400_DH([theta_1, theta_2, theta_3, theta_4, theta_5, theta_6])
 
