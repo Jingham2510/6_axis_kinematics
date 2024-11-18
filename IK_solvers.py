@@ -1,5 +1,16 @@
-   
+"""
+This file contains multiple different IK solvers, mainly to prove I can write them.
+
+Also allows
+
+
+
+"""
+
+
 import numpy as np
+from math import radians
+
 
 """
 Gradient descent method to generate joint angles for a given position
@@ -7,44 +18,78 @@ Inverse Kinematics
 
 Adapted from: https://liu.diva-portal.org/smash/get/diva2:1774792/FULLTEXT01.pdf   
 
-Currently updates the joint angles and moves the robots angles at the same time. - NEED to change to be analytical
+Currently updates the joint angles and moves the robots angles at the same time. - does this matter? I don't intend on doing this then not moving...
 """
-def _gradient_descent(self, curr_pos, goal_pos):
+def _gradient_descent(robot, goal_pos):
 
-    q = self.theta_list
 
     #Inbuilt to function - will require fiddling
-    STEP_SIZE = 3
+    STEP_SIZE = 1
     ALPHA = 3.5
     TOLERANCE = 100
+    MAX_ITERATIONS = 5000
+
+    #Get current joint angles
+    q = robot.theta_list
+
+
 
     #Generate the current pose based on previously calculated results
-    current_pos = [curr_pos[0], curr_pos[1], curr_pos[2], curr_pos[3], curr_pos[4], curr_pos[5]]
+    current_pos = robot.get_pos_euler()
+    print(f"STARTING POS: {current_pos}")
 
     e = np.subtract(goal_pos, current_pos)
 
+
+    j = 0
+
     while np.linalg.norm(e) >= TOLERANCE:
 
-        J = self.calc_jacobian()
 
+        #Calculate the jacobian
+        J = robot.calc_jacobian()
+        print(f"Jacboian: {J}")
+
+        #Transpose the jacobian
         J_T = np.transpose(J)
 
         gradient = ALPHA * J_T * e
 
-        print(gradient)
+        print(f"Gradient: {gradient}")
+
 
         for i in range(len(q)):
-            q[i] = q[i] + (gradient * STEP_SIZE)
+            #Modify each joint angle by the calculated step
+            step = gradient[i][2] * STEP_SIZE
+
+            q[i] = q[i] + step
+
 
         #CHECK JOINT LIMITS HERE
+        q = robot.check_joint_limits(q)
 
         #Update the joint angles of the robot - whilst also moving it 
-        self.update_joint_angles(q)
+        robot.update_joint_angles(q)
 
         #Get the new pos of the robot
-        current_pos = [self.pos["X"], self.pos["Y"], self.pos["Z"], self.euler_orient[0][0], self.euler_orient[0][1], self.euler_orient[0][2]]
+        current_pos = robot.get_pos_euler()
+        
 
+        #Calculate new pose difference
         e = np.subtract(goal_pos, current_pos)
+        
+
+        #Increase iteration count
+        j = j + 1
+
+        if j >= MAX_ITERATIONS:
+            print("MAX ITERATIONS PASSED")
+            break
+
+    #If solved print the new joint angles
+    print(f"ENDING POS: {current_pos}")
+    print(f"DIFF: {e} \n NORM: {np.linalg.norm(e)}")
+    print(q)
 
 
 
