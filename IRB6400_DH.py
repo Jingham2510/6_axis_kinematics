@@ -339,7 +339,7 @@ class IRB4400_DH:
 
         #Calculate each jacobian component for each link
         for i in range(len(self.link_list)):   
-            print(f"J_{i} --------------------------")
+            #print(f"J_{i} --------------------------")
             
             """
             
@@ -358,14 +358,14 @@ class IRB4400_DH:
                 #Calculate the next transofrmation matrix
                 trans_matrices = np.matmul(trans_matrices, self.link_list[i].get_hg_mat())
 
-            print(f"T: {trans_matrices}")
+            #print(f"T: {trans_matrices}")
 
             #First 3 elements of third column T^0_i
             z_i_minus_one = np.array([[trans_matrices[0][2]], 
                                       [trans_matrices[1][2]], 
                                       [trans_matrices[2][2]]])
 
-            print(f"Z_I-1: {z_i_minus_one}")
+            #print(f"Z_I-1: {z_i_minus_one}")
 
             #First 3 elements of fourth column T^0_i
             o_i_minus_one = np.array([[trans_matrices[0][3]], 
@@ -375,26 +375,26 @@ class IRB4400_DH:
             
             o_diff = np.subtract(o_n, o_i_minus_one)
 
-            print(f"O_N: {o_n}")
-            print(f"O_I-1: {o_i_minus_one}")
+            #print(f"O_N: {o_n}")
+            #print(f"O_I-1: {o_i_minus_one}")
 
 
-            print(f"O_DIFF: {o_diff}")
+            #print(f"O_DIFF: {o_diff}")
 
 
             j_top  = np.cross(z_i_minus_one, o_diff, axis = 0)
-            print(f"TOP: {j_top}")
+            #print(f"TOP: {j_top}")
 
 
             j_bot = z_i_minus_one
-            print(f"BOT: {j_bot}")
+            #print(f"BOT: {j_bot}")
 
             j_i = np.vstack([j_top, j_bot])
 
             
 
 
-            print(j_i)           
+            #print(j_i)           
             
 
             J.append(j_i)
@@ -410,7 +410,7 @@ class IRB4400_DH:
         #Combine the matrices to create a 6x6 jacobian matrix
         jacobian = np.concatenate([i for i in J], axis=1)
 
-        print(jacobian)
+        #print(jacobian)
 
         return jacobian
     
@@ -428,6 +428,9 @@ class IRB4400_DH:
 
             case "gradient descent":
                 new_angles = IK._gradient_descent(self, goal_pos)
+
+            case "gauss newton":
+                new_angles = IK._gauss_newton(self, goal_pos)
 
 
             case _:
@@ -472,15 +475,18 @@ if __name__ == "__main__":
     print(robot.T)
 
 
-    print("---------JACOBIAN----------")
+    #print("---------JACOBIAN----------")
 
 
 
 
-    print(robot.calc_jacobian())
+    #print(robot.calc_jacobian())
 
 
 
 
-    #robot.calc_new_joints(method = "gradient descent", goal_pos = [X , Y, Z + 700, 1.0605752387249069e-16, -1.0471975511965979, 3.141592653589793])
+    angles = robot.calc_new_joints(method = "gradient descent", goal_pos = [X , Y, Z + 200, 1.0605752387249069e-16, -1.0471975511965979, 3.141592653589793])
 
+
+    for angle in angles:
+        print(f"Joint: {degrees(angle)}")

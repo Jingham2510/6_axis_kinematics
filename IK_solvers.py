@@ -9,14 +9,15 @@ Also allows
 
 
 import numpy as np
-from math import radians
+from math import radians, degrees
+import matplotlib.pyplot as plt
 
 
 """
 Gradient descent method to generate joint angles for a given position
 Inverse Kinematics  
 
-Adapted from: https://liu.diva-portal.org/smash/get/diva2:1774792/FULLTEXT01.pdf   
+Adapted from: https://liu.diva-portal.org/smash/get/diva2:1774792/FULLTEXT01.pdf   and https://mathweb.ucsd.edu/~sbuss/ResearchWeb/ikmethods/iksurvey.pdf
 
 Currently updates the joint angles and moves the robots angles at the same time. - does this matter? I don't intend on doing this then not moving...
 """
@@ -24,9 +25,10 @@ def _gradient_descent(robot, goal_pos):
 
 
     #Inbuilt to function - will require fiddling
-    STEP_SIZE = 1
+    STEP_SIZE = 0.000000000001
+    #Alpha = learning rate - needs to be tuned
     ALPHA = 3.5
-    TOLERANCE = 100
+    TOLERANCE = 1
     MAX_ITERATIONS = 5000
 
     #Get current joint angles
@@ -40,27 +42,35 @@ def _gradient_descent(robot, goal_pos):
 
     e = np.subtract(goal_pos, current_pos)
 
-
+    print(e)
     j = 0
+
+    errors = []
+    t = []
 
     while np.linalg.norm(e) >= TOLERANCE:
 
 
+        errors.append(np.linalg.norm(e))
+        t.append(j)
+
         #Calculate the jacobian
         J = robot.calc_jacobian()
-        print(f"Jacboian: {J}")
+        #print(f"Jacboian: {J}")
 
         #Transpose the jacobian
         J_T = np.transpose(J)
 
-        gradient = ALPHA * J_T * e
+        gradient = ALPHA * np.matmul(J_T, e)
 
-        print(f"Gradient: {gradient}")
+        #print(gradient)
 
 
         for i in range(len(q)):
             #Modify each joint angle by the calculated step
-            step = gradient[i][2] * STEP_SIZE
+            step = gradient[i] * STEP_SIZE
+
+            
 
             q[i] = q[i] + step
 
@@ -88,8 +98,15 @@ def _gradient_descent(robot, goal_pos):
 
     #If solved print the new joint angles
     print(f"ENDING POS: {current_pos}")
-    print(f"DIFF: {e} \n NORM: {np.linalg.norm(e)}")
-    print(q)
+    print(f"DIFF: {e} \n NORM: {np.linalg.norm(e)}")    
+
+    plt.plot(t, errors)
+
+    plt.show()
+
+    return q 
+    
+
 
 
 
