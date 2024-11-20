@@ -21,8 +21,6 @@ class IRB4400_DH:
     Format is [link_length, link twist, link offset] 
      or       [a,             alpha,        d]
      These are constant for each joint - hence why theta is in a different list
-
-
     """
 
     """     
@@ -35,8 +33,7 @@ class IRB4400_DH:
     """
     VERIFIED WITH https://tools.glowbuzzer.com/kinviz    
     BELOW ARE THE CORRECT PARAMETERS
-    REMEMBER THAT A6 WILL NEED UPDATING DEPENDENT ON THE END AFFECTOR POSITION/ORIENTATION
-    
+    REMEMBER THAT A6 WILL NEED UPDATING DEPENDENT ON THE END AFFECTOR POSITION/ORIENTATION    
     """
 
     _DH_PARAMS = [[240, pi/2, 800], [1050, 0, 0], [225, pi/2, 0], [0, -pi/2, 1520], [0,pi/2,0], [0,0,200]]
@@ -429,12 +426,13 @@ class IRB4400_DH:
             case "gradient descent":
                 new_angles = IK._gradient_descent(self, goal_pos)
 
-            case "gauss newton":
-                new_angles = IK._gauss_newton(self, goal_pos)
+            case "psuedo inverse":
+                new_angles = IK._psuedo_inverse(self, goal_pos)
 
 
             case _:
-                print("INVALID METHOD")       
+                print("INVALID METHOD")     
+                return -1  
         
         return new_angles
 
@@ -485,7 +483,7 @@ if __name__ == "__main__":
 
 
 
-    angles = robot.calc_new_joints(method = "gradient descent", goal_pos = [X , Y, Z + 200, 1.0605752387249069e-16, -1.0471975511965979, 3.141592653589793])
+    angles = robot.calc_new_joints(method = "psuedo inverse", goal_pos = [X , Y , Z + 200, 1.0605752387249069e-16, -1.0471975511965979, 3.141592653589793])
 
 
     for angle in angles:

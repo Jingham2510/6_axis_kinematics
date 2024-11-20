@@ -25,10 +25,10 @@ def _gradient_descent(robot, goal_pos):
 
 
     #Inbuilt to function - will require fiddling
-    STEP_SIZE = 0.000000000001
+    STEP_SIZE = -1e-12
     #Alpha = learning rate - needs to be tuned
     ALPHA = 3.5
-    TOLERANCE = 1
+    TOLERANCE = 3
     MAX_ITERATIONS = 5000
 
     #Get current joint angles
@@ -43,7 +43,7 @@ def _gradient_descent(robot, goal_pos):
     e = np.subtract(goal_pos, current_pos)
 
     print(e)
-    j = 0
+    iterations = 0
 
     errors = []
     t = []
@@ -52,7 +52,7 @@ def _gradient_descent(robot, goal_pos):
 
 
         errors.append(np.linalg.norm(e))
-        t.append(j)
+        t.append(iterations)
 
         #Calculate the jacobian
         J = robot.calc_jacobian()
@@ -61,18 +61,16 @@ def _gradient_descent(robot, goal_pos):
         #Transpose the jacobian
         J_T = np.transpose(J)
 
-        gradient = ALPHA * np.matmul(J_T, e)
+        gradient = ALPHA * np.matmul(J_T, e)  
 
         #print(gradient)
 
-
         for i in range(len(q)):
             #Modify each joint angle by the calculated step
-            step = gradient[i] * STEP_SIZE
+            step = gradient[i] * STEP_SIZE            
 
-            
+            q[i] = q[i] + step       
 
-            q[i] = q[i] + step
 
 
         #CHECK JOINT LIMITS HERE
@@ -87,12 +85,15 @@ def _gradient_descent(robot, goal_pos):
 
         #Calculate new pose difference
         e = np.subtract(goal_pos, current_pos)
+
+        print(e)
+
         
 
         #Increase iteration count
-        j = j + 1
+        iterations = iterations + 1
 
-        if j >= MAX_ITERATIONS:
+        if iterations >= MAX_ITERATIONS:
             print("MAX ITERATIONS PASSED")
             break
 
@@ -107,6 +108,99 @@ def _gradient_descent(robot, goal_pos):
     return q 
     
 
+"""
+Pseudoinverse method - similar to gradient descent but using the pseudoinverse rather than the transpose
+"""
+
+def _psuedo_inverse(robot, goal_pos):
+
+
+    #Inbuilt to function - will require fiddling
+    STEP_SIZE = -1e-12
+    #Alpha = learning rate - needs to be tuned
+    ALPHA = 3.5
+    TOLERANCE = 3
+    MAX_ITERATIONS = 5000
+
+    #Get current joint angles
+    q = robot.theta_list
+
+
+
+    #Generate the current pose based on previously calculated results
+    current_pos = robot.get_pos_euler()
+    print(f"STARTING POS: {current_pos}")
+
+    e = np.subtract(goal_pos, current_pos)
+
+    print(e)
+    iterations = 0
+
+    errors = []
+    t = []
+
+ 
+    while np.linalg.norm(e) >= TOLERANCE:
+
+
+        errors.append(np.linalg.norm(e))
+        t.append(iterations)
+
+        #Calculate the jacobian
+        J = robot.calc_jacobian()
+        #print(f"Jacboian: {J}")
+
+        #Calculate the psuedo-inverse jacobian
+        J_psuedo_inv = np.linalg.pinv(J)
+
+        #print(J_psuedo_inv)
+
+
+        for i in range(len(q)):
+
+            delta_q = np.matmul(J_psuedo_inv[i], e)
+
+            #print(delta_q)
+
+            #Modify each joint angle by the calculated step
+            step = delta_q * STEP_SIZE            
+
+            q[i] = q[i] + step       
+
+
+
+        #CHECK JOINT LIMITS HERE
+        q = robot.check_joint_limits(q)
+
+        #Update the joint angles of the robot - whilst also moving it 
+        robot.update_joint_angles(q)
+
+        #Get the new pos of the robot
+        current_pos = robot.get_pos_euler()
+        
+
+        #Calculate new pose difference
+        e = np.subtract(goal_pos, current_pos)
+
+       
+
+        #Increase iteration count
+        iterations = iterations + 1
+
+        if iterations >= MAX_ITERATIONS:
+            print("MAX ITERATIONS PASSED")
+            break
+
+    #If solved print the new joint angles
+    print(f"ENDING POS: {current_pos}")
+    print(f"DIFF: {e} \n NORM: {np.linalg.norm(e)}")    
+
+    plt.plot(t, errors)
+
+    plt.show()
+
+    return q 
+    
 
 
 
