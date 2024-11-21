@@ -11,6 +11,8 @@ Also allows
 import numpy as np
 from math import radians, degrees
 import matplotlib.pyplot as plt
+import time
+import random as rand
 
 
 """
@@ -76,12 +78,12 @@ def _gradient_descent(robot, goal_pos):
         #CHECK JOINT LIMITS HERE
         q = robot.check_joint_limits(q)
 
-        #Update the joint angles of the robot - whilst also moving it 
+        #Update the joint angles of the robot 
         robot.update_joint_angles(q)
 
         #Get the new pos of the robot
         current_pos = robot.get_pos_euler()
-        
+
 
         #Calculate new pose difference
         e = np.subtract(goal_pos, current_pos)
@@ -116,16 +118,12 @@ def _psuedo_inverse(robot, goal_pos):
 
 
     #Inbuilt to function - will require fiddling
-    STEP_SIZE = -1e-12
-    #Alpha = learning rate - needs to be tuned
-    ALPHA = 3.5
+    STEP_SIZE = 1e-6
     TOLERANCE = 3
     MAX_ITERATIONS = 5000
 
     #Get current joint angles
     q = robot.theta_list
-
-
 
     #Generate the current pose based on previously calculated results
     current_pos = robot.get_pos_euler()
@@ -139,8 +137,12 @@ def _psuedo_inverse(robot, goal_pos):
     errors = []
     t = []
 
+    prev_e = np.linalg.norm(e)
+
+    best_e = 100000
  
-    while np.linalg.norm(e) >= TOLERANCE:
+    while curr_e := (np.linalg.norm(e)) >= TOLERANCE:
+
 
 
         errors.append(np.linalg.norm(e))
@@ -149,6 +151,7 @@ def _psuedo_inverse(robot, goal_pos):
         #Calculate the jacobian
         J = robot.calc_jacobian()
         #print(f"Jacboian: {J}")
+
 
         #Calculate the psuedo-inverse jacobian
         J_psuedo_inv = np.linalg.pinv(J)
@@ -163,6 +166,7 @@ def _psuedo_inverse(robot, goal_pos):
             #print(delta_q)
 
             #Modify each joint angle by the calculated step
+            #Clip the angles so that we don't move too far
             step = delta_q * STEP_SIZE            
 
             q[i] = q[i] + step       
@@ -172,11 +176,12 @@ def _psuedo_inverse(robot, goal_pos):
         #CHECK JOINT LIMITS HERE
         q = robot.check_joint_limits(q)
 
-        #Update the joint angles of the robot - whilst also moving it 
+        #Update the joint angles of the robot 
         robot.update_joint_angles(q)
 
         #Get the new pos of the robot
         current_pos = robot.get_pos_euler()
+      
         
 
         #Calculate new pose difference
@@ -191,85 +196,30 @@ def _psuedo_inverse(robot, goal_pos):
             print("MAX ITERATIONS PASSED")
             break
 
+        
+        #If the error hasn't changed 
+        if iterations > 1 and prev_e == curr_e:
+            #Randomly change one of the joints to see if you can stochastically find a better solution
+            q[rand.randint(0, 2)] += radians(rand.randint(-180,180))
+
+
+        prev_e = curr_e
+
+
+        #Save the closest position
+        if curr_e < best_e:
+            best_e = curr_e
+            best_angles = q
+            best_pos = current_pos
+
     #If solved print the new joint angles
-    print(f"ENDING POS: {current_pos}")
-    print(f"DIFF: {e} \n NORM: {np.linalg.norm(e)}")    
+    print(f"Best POS: {best_pos}")
+    print(f"CLOSEST NORM: {best_e}")    
 
     plt.plot(t, errors)
 
     plt.show()
 
-    return q 
+    return best_angles
     
 
-
-
-
-"""
-NOTE: Commented out IK solvers are because they aren't suitable // also don't really know how to fix them
-
-Implementatoin of the FABRIK solution - based on the pseudocode presented in the original papers
-developed at cambridge btw
-
-target_pos format = [X,Y,Z] - in reference to the robots origin frame (which is currently the base frame)
-
-CURRENTLY A BIT STUCK - FABRIK finds smooth joint movement, not joint angles! there has to be a modification though?
-
-
-def FABRIK_IK(self, target_pos, tolerance):
-
-    #Calculate the distance between the base and the target position 
-    #Technically because we are doing everything in reference to the base frame so we just need the desired points coordinates
-    target_distance = sqrt(pow(target_pos[0] - self._ORIGIN_FRAME[0], 2) 
-                            + pow(target_pos[1] - self._ORIGIN_FRAME[1], 2)
-                            + pow(target_pos[2] - self._ORIGIN_FRAME[2], 2))
-
-    #Get the current positions of the joints (mathematically)
-    curr_joint_pos = self._get_all_joint_pos()
-
-
-    #Check if the target is reachable
-    if target_distance > self.robot_length:
-        #Unreachable
-        #Iterate through joint angle positions
-        for i in range(len(self.theta_list)):
-            #Find distance between the target and the current joint position
-            r = sqrt(pow(target_pos[0] - curr_joint_pos[i][0], 2) 
-                            + pow(target_pos[1] - curr_joint_pos[i][1], 2)
-                            + pow(target_pos[2] - curr_joint_pos[i][2], 2))
-            
-            #calculate the links distance to the next link and divide by the distance to the target
-            lmbda = sqrt(pow(self.link_list[i].a + self.link_list[i].d, 2))/r
-
-            #calulcate the new joint angle - I don't think FABRIK is built for this
-            #self.theta_list[i] = (1 - lmbda)*self.theta_list[i] + lmbda*target_pos  
-
-    return
-
-
-Calcuakte joint angles utilising the geometric IK method
-We only care about Elbow Up config due to the robot and the experimental setup
-
-USEFUL: https://www.youtube.com/watch?v=D93iQVoSScQ
-
-Again - this might not be the right solution
-
-def geometric_IK(self, target_pos):
-
-    #Get the angle of the base - verified!
-    theta_1 = atan2(target_pos[1], target_pos[0])
-
-
-    phi_2 = atan2((target_pos[2]-self._DH_PARAMS[0][2]),(sqrt(target_pos[0] + target_pos[1])))
-    #Its a funny one because the joint lengths are spread differently to make the DH work
-    
-
-    #So including an extra length to make sure we reach the end
-    phi_1 = acos(1)
-
-    #ptheta_2 = phi_2 - phi_1 ;phi_2 = atan(r2/r1), phi_1 = 
-    theta_2 =  phi_2 - phi_1
-
-    return
-
-"""

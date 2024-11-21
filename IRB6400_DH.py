@@ -12,6 +12,7 @@ from math import pi
 from math import degrees, radians, sin, asin, cos, atan2, sqrt, acos, copysign
 import IK_solvers as IK
 
+
 class IRB4400_DH:
 
     """
@@ -466,7 +467,7 @@ if __name__ == "__main__":
 
     print("-----ORIENTATION-----")
     print(f"Euler: {robot.get_euler_orient()}")
-    print(f"Quartenion: {robot.get_quartenions()}")
+    #print(f"Quartenion: {robot.get_quartenions()}")
 
     #print(robot._get_all_joint_pos())
 
@@ -483,7 +484,7 @@ if __name__ == "__main__":
 
 
 
-    angles = robot.calc_new_joints(method = "psuedo inverse", goal_pos = [X , Y , Z + 200, 1.0605752387249069e-16, -1.0471975511965979, 3.141592653589793])
+    angles = robot.calc_new_joints(method = "psuedo inverse", goal_pos = [X +200, Y -300, Z + 200, 1.0605752387249069e-16, -1.0471975511965979, 3.141592653589793])
 
 
     for angle in angles:

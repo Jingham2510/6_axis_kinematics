@@ -70,9 +70,7 @@ class DH_link:
 
     def get_hg_mat(self):
         return self.A
-
-
-
+    
 
 
 
